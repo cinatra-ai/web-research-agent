@@ -1,0 +1,272 @@
+{
+  "agentspec_version": "26.1.0",
+  "component_type": "Flow",
+  "id": "web-research-agent-flow",
+  "name": "Web Research Agent",
+  "description": "Stateless schema-driven web research enricher — takes caller-supplied rows + research prompt + optional sources, uses web_search to enrich each row, captures per-URL reachability checks, and returns enrichedRows + extractionNotes + failures + webChecks. Hard bounds: rows.length in [1, 20], sources.length <= 10.",
+  "metadata": {
+    "cinatra": {
+      "type": "flow",
+      "packageName": "@cinatra-ai/web-research-agent",
+      "packageVersion": "0.1.3",
+      "hitlScreens": [],
+      "llm": {
+        "preferredProvider": "openai",
+        "preferredModel": "gpt-5.5"
+      },
+      "toolboxes": ["web_search"]
+    }
+  },
+  "inputs": [
+    {
+      "title": "rows",
+      "type": "array",
+      "json_schema": {
+        "items": { "type": "object" },
+        "minItems": 1,
+        "maxItems": 20
+      }
+    },
+    { "title": "prompt", "type": "string" },
+    {
+      "title": "sources",
+      "type": "array",
+      "json_schema": {
+        "items": {
+          "type": "object",
+          "properties": {
+            "type": { "type": "string", "enum": ["url", "object"] },
+            "ref": { "type": "string" }
+          },
+          "required": ["type", "ref"]
+        },
+        "maxItems": 10
+      },
+      "default": []
+    },
+    { "title": "outputSchema", "type": "object", "default": {} }
+  ],
+  "outputs": [
+    {
+      "title": "enrichedRows",
+      "type": "array",
+      "json_schema": { "items": { "type": "object" } }
+    },
+    { "title": "extractionNotes", "type": "string" },
+    {
+      "title": "failures",
+      "type": "array",
+      "json_schema": { "items": { "type": "object" } }
+    },
+    {
+      "title": "webChecks",
+      "type": "array",
+      "json_schema": { "items": { "type": "object" } }
+    }
+  ],
+  "start_node": { "$component_ref": "start" },
+  "nodes": [
+    { "$component_ref": "start" },
+    { "$component_ref": "research" },
+    { "$component_ref": "end" }
+  ],
+  "control_flow_connections": [
+    {
+      "component_type": "ControlFlowEdge",
+      "name": "start_to_research",
+      "from_node": { "$component_ref": "start" },
+      "to_node": { "$component_ref": "research" }
+    },
+    {
+      "component_type": "ControlFlowEdge",
+      "name": "research_to_end",
+      "from_node": { "$component_ref": "research" },
+      "to_node": { "$component_ref": "end" }
+    }
+  ],
+  "data_flow_connections": [
+    {
+      "component_type": "DataFlowEdge",
+      "name": "start_rows_to_research_rows",
+      "source_node": { "$component_ref": "start" },
+      "source_output": "rows",
+      "destination_node": { "$component_ref": "research" },
+      "destination_input": "rows"
+    },
+    {
+      "component_type": "DataFlowEdge",
+      "name": "start_prompt_to_research_prompt",
+      "source_node": { "$component_ref": "start" },
+      "source_output": "prompt",
+      "destination_node": { "$component_ref": "research" },
+      "destination_input": "prompt"
+    },
+    {
+      "component_type": "DataFlowEdge",
+      "name": "start_sources_to_research_sources",
+      "source_node": { "$component_ref": "start" },
+      "source_output": "sources",
+      "destination_node": { "$component_ref": "research" },
+      "destination_input": "sources"
+    },
+    {
+      "component_type": "DataFlowEdge",
+      "name": "start_outputSchema_to_research_outputSchema",
+      "source_node": { "$component_ref": "start" },
+      "source_output": "outputSchema",
+      "destination_node": { "$component_ref": "research" },
+      "destination_input": "outputSchema"
+    },
+    {
+      "component_type": "DataFlowEdge",
+      "name": "research_enrichedRows_to_end_enrichedRows",
+      "source_node": { "$component_ref": "research" },
+      "source_output": "enrichedRows",
+      "destination_node": { "$component_ref": "end" },
+      "destination_input": "enrichedRows"
+    },
+    {
+      "component_type": "DataFlowEdge",
+      "name": "research_extractionNotes_to_end_extractionNotes",
+      "source_node": { "$component_ref": "research" },
+      "source_output": "extractionNotes",
+      "destination_node": { "$component_ref": "end" },
+      "destination_input": "extractionNotes"
+    },
+    {
+      "component_type": "DataFlowEdge",
+      "name": "research_failures_to_end_failures",
+      "source_node": { "$component_ref": "research" },
+      "source_output": "failures",
+      "destination_node": { "$component_ref": "end" },
+      "destination_input": "failures"
+    },
+    {
+      "component_type": "DataFlowEdge",
+      "name": "research_webChecks_to_end_webChecks",
+      "source_node": { "$component_ref": "research" },
+      "source_output": "webChecks",
+      "destination_node": { "$component_ref": "end" },
+      "destination_input": "webChecks"
+    }
+  ],
+  "$referenced_components": {
+    "start": {
+      "component_type": "StartNode",
+      "id": "start",
+      "name": "Inputs",
+      "metadata": {
+        "cinatra": {
+          "required": ["rows", "prompt"],
+          "hidden": ["sources", "outputSchema"]
+        }
+      },
+      "inputs": [
+        {
+          "title": "rows",
+          "type": "array",
+          "json_schema": {
+            "items": { "type": "object" },
+            "minItems": 1,
+            "maxItems": 20
+          }
+        },
+        { "title": "prompt", "type": "string" },
+        {
+          "title": "sources",
+          "type": "array",
+          "json_schema": {
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string", "enum": ["url", "object"] },
+                "ref": { "type": "string" }
+              },
+              "required": ["type", "ref"]
+            },
+            "maxItems": 10
+          },
+          "default": []
+        },
+        { "title": "outputSchema", "type": "object", "default": {} }
+      ]
+    },
+    "research": {
+      "component_type": "ApiNode",
+      "id": "research",
+      "name": "Research via /api/llm-bridge with web_search",
+      "url": "{{CINATRA_BASE_URL}}/api/llm-bridge",
+      "http_method": "POST",
+      "data": {
+        "agent_id": "web-research-agent",
+        "system": "You are a stateless web-research enricher. Follow the SKILL.md step-by-step. Use the web_search tool to verify and enrich each row. Return a single JSON object with {enrichedRows, extractionNotes, failures, webChecks} — nothing else.",
+        "user": "{# pyagentspec-input-hint (do not remove): {{ rows }} {{ sources }} {{ outputSchema }} #}Enrich the following rows via web_search per the research prompt.\n\nRows (JSON array, length 1-20): {{ rows | tojson }}\n\nResearch prompt: {{ prompt }}\n\nOptional sources (JSON array of {type,ref}, length 0-10): {{ sources | tojson }}\n\nOptional output schema for each enriched row (JSON Schema): {{ outputSchema | tojson }}\n\nReturn ONLY the JSON object specified in SKILL.md — keys: enrichedRows, extractionNotes, failures, webChecks.",
+        "cinatra_llm": {
+          "preferredProvider": "openai",
+          "preferredModel": "gpt-5.5"
+        },
+        "toolbox_ids": [
+          "web_search"
+        ]
+      },
+      "inputs": [
+        { "title": "rows", "type": "array" },
+        { "title": "prompt", "type": "string" },
+        { "title": "sources", "type": "array" },
+        { "title": "outputSchema", "type": "object" }
+      ],
+      "outputs": [
+        {
+          "title": "enrichedRows",
+          "type": "array",
+          "json_schema": { "items": { "type": "object" } }
+        },
+        { "title": "extractionNotes", "type": "string" },
+        {
+          "title": "failures",
+          "type": "array",
+          "json_schema": { "items": { "type": "object" } }
+        },
+        {
+          "title": "webChecks",
+          "type": "array",
+          "json_schema": { "items": { "type": "object" } }
+        }
+      ],
+      "metadata": {
+        "cinatra": {
+          "riskClass": "read_only",
+          "requiresApproval": false,
+          "packageName": "@cinatra-ai/web-research-agent",
+          "description": "Single ApiNode -> /api/llm-bridge. Bridge auto-discovers SKILL.md from agents/cinatra/web-research-agent/skills/web-research-agent/SKILL.md (via agent_id) and injects the web_search tool via metadata.cinatra.toolboxes (declaredToolboxIds=['web_search'] filter). The LLM uses web_search ONLY — no MCP primitives — to verify facts in each caller-supplied row and capture per-URL reachability."
+        }
+      }
+    },
+    "end": {
+      "component_type": "EndNode",
+      "id": "end",
+      "name": "End",
+      "outputs": [
+        {
+          "title": "enrichedRows",
+          "type": "array",
+          "json_schema": { "items": { "type": "object" } },
+          "default": []
+        },
+        { "title": "extractionNotes", "type": "string", "default": "" },
+        {
+          "title": "failures",
+          "type": "array",
+          "json_schema": { "items": { "type": "object" } },
+          "default": []
+        },
+        {
+          "title": "webChecks",
+          "type": "array",
+          "json_schema": { "items": { "type": "object" } },
+          "default": []
+        }
+      ]
+    }
+  }
+}
