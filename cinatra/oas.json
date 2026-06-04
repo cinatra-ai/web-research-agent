@@ -8,7 +8,7 @@
     "cinatra": {
       "type": "flow",
       "packageName": "@cinatra-ai/web-research-agent",
-      "packageVersion": "0.1.3",
+      "packageVersion": "0.1.0",
       "hitlScreens": [],
       "llm": {
         "preferredProvider": "openai",
