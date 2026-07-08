@@ -11,7 +11,17 @@
   "cinatra": {
     "apiVersion": "cinatra.ai/v1",
     "kind": "agent",
+    "displayName": "Web Research Agent",
     "dependencies": [],
-    "consumes": []
+    "consumes": [],
+    "packageType": "agent",
+    "manifestVersion": 1,
+    "sourceTemplateId": "web-research-agent-flow",
+    "sourceVersionId": "80c68b88-8f81-4c80-ad5f-275877f44fae",
+    "sourceVersionNumber": 1,
+    "riskLevel": "low",
+    "hasApprovalGates": false,
+    "toolAccess": [],
+    "ownerOrgId": null
   }
 }
