@@ -237,7 +237,7 @@
           "riskClass": "read_only",
           "requiresApproval": false,
           "packageName": "@cinatra-ai/web-research-agent",
-          "description": "Single ApiNode -> /api/llm-bridge. Bridge auto-discovers SKILL.md from agents/cinatra/web-research-agent/skills/web-research-agent/SKILL.md (via agent_id) and injects the web_search tool via metadata.cinatra.toolboxes (declaredToolboxIds=['web_search'] filter). The LLM uses web_search ONLY — no MCP primitives — to verify facts in each caller-supplied row and capture per-URL reachability."
+          "description": "Single ApiNode -> /api/llm-bridge. Bridge resolves the agent's DECLARED skill dependency edge (cinatra.dependencies -> @cinatra-ai/web-research-skill, kind:\"skill\") and mounts that extension's single bundle; the skill is no longer embedded in this repo (cinatra#2090) and injects the web_search tool via metadata.cinatra.toolboxes (declaredToolboxIds=['web_search'] filter). The LLM uses web_search ONLY — no MCP primitives — to verify facts in each caller-supplied row and capture per-URL reachability."
         }
       }
     },
