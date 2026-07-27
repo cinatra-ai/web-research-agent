@@ -1,18 +1,28 @@
 {
   "name": "@cinatra-ai/web-research-agent",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "license": "Apache-2.0",
   "description": "Stateless schema-driven web research enricher — takes a caller-supplied rows array and research prompt, uses web_search to enrich each row, and returns enrichedRows + extractionNotes + failures + webChecks. Hard bounds: rows.length in [1, 20], sources.length <= 10. Caller chunks larger inputs.",
   "type": "module",
   "files": [
-    "cinatra",
-    "skills"
+    "cinatra"
   ],
   "cinatra": {
     "apiVersion": "cinatra.ai/v1",
     "kind": "agent",
     "displayName": "Web Research Agent",
-    "dependencies": [],
+    "dependencies": [
+      {
+        "packageName": "@cinatra-ai/web-research-skill",
+        "edgeType": "runtime",
+        "versionConstraint": {
+          "kind": "semver-range",
+          "range": "*"
+        },
+        "requirement": "required",
+        "kind": "skill"
+      }
+    ],
     "consumes": [],
     "packageType": "agent",
     "manifestVersion": 1,
