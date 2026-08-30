@@ -21,6 +21,16 @@
         },
         "requirement": "required",
         "kind": "skill"
+      },
+      {
+        "packageName": "@cinatra-ai/json-artifact",
+        "edgeType": "runtime",
+        "versionConstraint": {
+          "kind": "semver-range",
+          "range": "^0.1.0"
+        },
+        "requirement": "required",
+        "kind": "artifact"
       }
     ],
     "consumes": [],
@@ -33,5 +43,8 @@
     "hasApprovalGates": false,
     "toolAccess": [],
     "ownerOrgId": null
+  },
+  "scripts": {
+    "test": "node --test tests/*.test.mjs"
   }
 }
