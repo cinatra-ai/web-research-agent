@@ -14,7 +14,7 @@ test("(18) the goal is one text field, and the only thing the run insists on", (
   const prompt = start.inputs.find((i) => i.title === "prompt");
   assert.equal(prompt.type, "string");
   assert.ok(prompt.description, "the goal field does not say what it is for");
-  assert.deepEqual(start.metadata.cinatra.required, ["prompt"]);
+  assert.deepEqual(start.metadata.cinatra.required, ["rowsSource", "prompt"]);
 });
 
 test("(18) the rows may come from an artifact or a file", () => {
