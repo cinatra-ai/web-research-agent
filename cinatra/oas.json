@@ -22,11 +22,30 @@
       "type": "array",
       "json_schema": {
         "items": { "type": "object" },
-        "minItems": 1,
         "maxItems": 20
-      }
+      },
+      "default": [],
+      "description": "The rows to enrich. Leave empty and name a source instead."
     },
-    { "title": "prompt", "type": "string" },
+    {
+      "title": "rowsSource",
+      "type": "object",
+      "json_schema": {
+        "type": "object",
+        "properties": {
+          "type": { "type": "string", "enum": ["artifact", "file"] },
+          "ref": { "type": "string" }
+        },
+        "required": ["type", "ref"]
+      },
+      "default": {},
+      "description": "Where the rows come from: an artifact already in the workspace, or a file."
+    },
+    {
+      "title": "prompt",
+      "type": "string",
+      "description": "What this research should find out about each row."
+    },
     {
       "title": "sources",
       "type": "array",
@@ -94,6 +113,14 @@
     },
     {
       "component_type": "DataFlowEdge",
+      "name": "start_rowsSource_to_research_rowsSource",
+      "source_node": { "$component_ref": "start" },
+      "source_output": "rowsSource",
+      "destination_node": { "$component_ref": "research" },
+      "destination_input": "rowsSource"
+    },
+    {
+      "component_type": "DataFlowEdge",
       "name": "start_prompt_to_research_prompt",
       "source_node": { "$component_ref": "start" },
       "source_output": "prompt",
@@ -156,7 +183,7 @@
       "name": "Inputs",
       "metadata": {
         "cinatra": {
-          "required": ["rows", "prompt"],
+          "required": ["prompt"],
           "hidden": ["sources", "outputSchema"]
         }
       },
@@ -166,11 +193,30 @@
           "type": "array",
           "json_schema": {
             "items": { "type": "object" },
-            "minItems": 1,
             "maxItems": 20
-          }
+          },
+          "default": [],
+          "description": "The rows to enrich. Leave empty and name a source instead."
         },
-        { "title": "prompt", "type": "string" },
+        {
+          "title": "rowsSource",
+          "type": "object",
+          "json_schema": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string", "enum": ["artifact", "file"] },
+              "ref": { "type": "string" }
+            },
+            "required": ["type", "ref"]
+          },
+          "default": {},
+          "description": "Where the rows come from: an artifact already in the workspace, or a file."
+        },
+        {
+          "title": "prompt",
+          "type": "string",
+          "description": "What this research should find out about each row."
+        },
         {
           "title": "sources",
           "type": "array",
@@ -198,8 +244,8 @@
       "http_method": "POST",
       "data": {
         "agent_id": "web-research-agent",
-        "system": "You are a stateless web-research enricher. Follow the SKILL.md step-by-step. Use the web_search tool to verify and enrich each row. Return a single JSON object with {enrichedRows, extractionNotes, failures, webChecks} — nothing else.",
-        "user": "{# pyagentspec-input-hint (do not remove): {{ rows }} {{ sources }} {{ outputSchema }} #}Enrich the following rows via web_search per the research prompt.\n\nRows (JSON array, length 1-20): {{ rows | tojson }}\n\nResearch prompt: {{ prompt }}\n\nOptional sources (JSON array of {type,ref}, length 0-10): {{ sources | tojson }}\n\nOptional output schema for each enriched row (JSON Schema): {{ outputSchema | tojson }}\n\nReturn ONLY the JSON object specified in SKILL.md — keys: enrichedRows, extractionNotes, failures, webChecks.",
+        "system": "You are a stateless web-research enricher. Follow the SKILL.md step-by-step. When rows is empty, read the rows from rowsSource first: for type \"artifact\" call artifact_representation_get with the ref, for type \"file\" read the file the ref names, and parse its rows before enriching. Use the web_search tool to verify and enrich each row. Return a single JSON object with {enrichedRows, extractionNotes, failures, webChecks} — nothing else.",
+        "user": "{# pyagentspec-input-hint (do not remove): {{ rows }} {{ rowsSource }} {{ sources }} {{ outputSchema }} #}Enrich the following rows via web_search per the research prompt.\n\nRows (JSON array, length 0-20; empty means read them from the source below): {{ rows | tojson }}\n\nRow source (JSON object {type,ref}, empty when rows were given): {{ rowsSource | tojson }}\n\nResearch prompt: {{ prompt }}\n\nOptional sources (JSON array of {type,ref}, length 0-10): {{ sources | tojson }}\n\nOptional output schema for each enriched row (JSON Schema): {{ outputSchema | tojson }}\n\nReturn ONLY the JSON object specified in SKILL.md — keys: enrichedRows, extractionNotes, failures, webChecks.",
         "cinatra_llm": {
           "preferredProvider": "openai",
           "preferredModel": "gpt-5.5"
