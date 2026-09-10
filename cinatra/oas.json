@@ -183,8 +183,8 @@
       "name": "Inputs",
       "metadata": {
         "cinatra": {
-          "required": ["prompt"],
-          "hidden": ["sources", "outputSchema"]
+          "required": ["rowsSource", "prompt"],
+          "hidden": ["rows", "sources", "outputSchema"]
         }
       },
       "inputs": [
@@ -256,6 +256,7 @@
       },
       "inputs": [
         { "title": "rows", "type": "array" },
+        { "title": "rowsSource", "type": "object" },
         { "title": "prompt", "type": "string" },
         { "title": "sources", "type": "array" },
         { "title": "outputSchema", "type": "object" }
