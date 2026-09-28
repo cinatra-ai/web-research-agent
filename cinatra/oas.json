@@ -33,13 +33,13 @@
       "json_schema": {
         "type": "object",
         "properties": {
-          "type": { "type": "string", "enum": ["artifact", "file"] },
+          "type": { "type": "string", "enum": ["artifact"] },
           "ref": { "type": "string" }
         },
         "required": ["type", "ref"]
       },
       "default": {},
-      "description": "Where the rows come from: an artifact already in the workspace, or a file."
+      "description": "Where the rows come from: a structured-data artifact already in the workspace. A file becomes such an artifact when it is uploaded to the Artifacts library."
     },
     {
       "title": "prompt",
@@ -62,19 +62,22 @@
       },
       "default": []
     },
-    { "title": "outputSchema", "type": "object", "default": {} }
+    { "title": "outputSchema", "type": "object", "default": {} },
+    { "title": "cinatra_run_id", "type": "string", "default": "" }
   ],
   "outputs": [
     {
       "title": "enrichedRows",
       "type": "array",
+      "default": [],
       "description": "One slot per input row at the same index: the caller's own row extended with a researchNotes string array and any fields the caller's outputSchema asks for. The per-row shape is the caller's own, so this list is intentionally free-form and this package declares no members for it.",
       "json_schema": { "items": { "type": "object" } }
     },
-    { "title": "extractionNotes", "type": "string" },
+    { "title": "extractionNotes", "type": "string", "default": "" },
     {
       "title": "failures",
       "type": "array",
+      "default": [],
       "description": "One entry per row the run could not enrich; the run continues past a failure.",
       "json_schema": {
         "items": {
@@ -90,6 +93,7 @@
     {
       "title": "webChecks",
       "type": "array",
+      "default": [],
       "description": "One entry per URL the run attempted, deduplicated by URL; an unreachable URL is an observation, not a failure.",
       "json_schema": {
         "items": {
@@ -106,6 +110,10 @@
   "start_node": { "$component_ref": "start" },
   "nodes": [
     { "$component_ref": "start" },
+    { "$component_ref": "rows_road" },
+    { "$component_ref": "rows_source" },
+    { "$component_ref": "rows_ref" },
+    { "$component_ref": "read_rows" },
     { "$component_ref": "research" },
     { "$component_ref": "research_summary" },
     { "$component_ref": "end" }
@@ -113,9 +121,48 @@
   "control_flow_connections": [
     {
       "component_type": "ControlFlowEdge",
-      "name": "start_to_research",
+      "name": "start_to_rows_road",
       "from_node": { "$component_ref": "start" },
+      "to_node": { "$component_ref": "rows_road" }
+    },
+    {
+      "component_type": "ControlFlowEdge",
+      "name": "rows_road_to_rows_source",
+      "from_node": { "$component_ref": "rows_road" },
+      "to_node": { "$component_ref": "rows_source" }
+    },
+    {
+      "component_type": "ControlFlowEdge",
+      "name": "rows_source_default_to_research",
+      "from_node": { "$component_ref": "rows_source" },
+      "from_branch": "default",
       "to_node": { "$component_ref": "research" }
+    },
+    {
+      "component_type": "ControlFlowEdge",
+      "name": "rows_source_artifact_to_rows_ref",
+      "from_node": { "$component_ref": "rows_source" },
+      "from_branch": "artifact",
+      "to_node": { "$component_ref": "rows_ref" }
+    },
+    {
+      "component_type": "ControlFlowEdge",
+      "name": "rows_ref_to_read_rows",
+      "from_node": { "$component_ref": "rows_ref" },
+      "to_node": { "$component_ref": "read_rows" }
+    },
+    {
+      "component_type": "ControlFlowEdge",
+      "name": "read_rows_to_research",
+      "from_node": { "$component_ref": "read_rows" },
+      "to_node": { "$component_ref": "research" }
+    },
+    {
+      "component_type": "ControlFlowEdge",
+      "name": "rows_source_none_to_research_summary",
+      "from_node": { "$component_ref": "rows_source" },
+      "from_branch": "none",
+      "to_node": { "$component_ref": "research_summary" }
     },
     {
       "component_type": "ControlFlowEdge",
@@ -170,6 +217,62 @@
       "source_output": "outputSchema",
       "destination_node": { "$component_ref": "research" },
       "destination_input": "outputSchema"
+    },
+    {
+      "component_type": "DataFlowEdge",
+      "name": "start_rows_to_rows_road_rows",
+      "source_node": { "$component_ref": "start" },
+      "source_output": "rows",
+      "destination_node": { "$component_ref": "rows_road" },
+      "destination_input": "rows"
+    },
+    {
+      "component_type": "DataFlowEdge",
+      "name": "start_rowsSource_to_rows_road_rowsSource",
+      "source_node": { "$component_ref": "start" },
+      "source_output": "rowsSource",
+      "destination_node": { "$component_ref": "rows_road" },
+      "destination_input": "rowsSource"
+    },
+    {
+      "component_type": "DataFlowEdge",
+      "name": "rows_road_output_to_rows_source_road",
+      "source_node": { "$component_ref": "rows_road" },
+      "source_output": "output",
+      "destination_node": { "$component_ref": "rows_source" },
+      "destination_input": "road"
+    },
+    {
+      "component_type": "DataFlowEdge",
+      "name": "start_rowsSource_to_rows_ref_rowsSource",
+      "source_node": { "$component_ref": "start" },
+      "source_output": "rowsSource",
+      "destination_node": { "$component_ref": "rows_ref" },
+      "destination_input": "rowsSource"
+    },
+    {
+      "component_type": "DataFlowEdge",
+      "name": "rows_ref_output_to_read_rows_rowsArtifactId",
+      "source_node": { "$component_ref": "rows_ref" },
+      "source_output": "output",
+      "destination_node": { "$component_ref": "read_rows" },
+      "destination_input": "rowsArtifactId"
+    },
+    {
+      "component_type": "DataFlowEdge",
+      "name": "start_cinatra_run_id_to_read_rows_cinatra_run_id",
+      "source_node": { "$component_ref": "start" },
+      "source_output": "cinatra_run_id",
+      "destination_node": { "$component_ref": "read_rows" },
+      "destination_input": "cinatra_run_id"
+    },
+    {
+      "component_type": "DataFlowEdge",
+      "name": "read_rows_text_to_research_rowsText",
+      "source_node": { "$component_ref": "read_rows" },
+      "source_output": "text",
+      "destination_node": { "$component_ref": "research" },
+      "destination_input": "rowsText"
     },
     {
       "component_type": "DataFlowEdge",
@@ -228,7 +331,7 @@
       "metadata": {
         "cinatra": {
           "required": ["rowsSource", "prompt"],
-          "hidden": ["rows", "sources", "outputSchema"]
+          "hidden": ["rows", "sources", "outputSchema", "cinatra_run_id"]
         }
       },
       "inputs": [
@@ -248,13 +351,13 @@
           "json_schema": {
             "type": "object",
             "properties": {
-              "type": { "type": "string", "enum": ["artifact", "file"] },
+              "type": { "type": "string", "enum": ["artifact"] },
               "ref": { "type": "string" }
             },
             "required": ["type", "ref"]
           },
           "default": {},
-          "description": "Where the rows come from: an artifact already in the workspace, or a file."
+          "description": "Where the rows come from: a structured-data artifact already in the workspace. A file becomes such an artifact when it is uploaded to the Artifacts library."
         },
         {
           "title": "prompt",
@@ -277,8 +380,85 @@
           },
           "default": []
         },
-        { "title": "outputSchema", "type": "object", "default": {} }
+        { "title": "outputSchema", "type": "object", "default": {} },
+        { "title": "cinatra_run_id", "type": "string", "default": "" }
       ]
+    },
+    "rows_road": {
+      "component_type": "PluginTemplateNode",
+      "id": "rows_road",
+      "name": "Choose where the rows come from",
+      "metadata": {},
+      "inputs": [
+        { "title": "rows" },
+        { "title": "rowsSource" }
+      ],
+      "outputs": [
+        { "title": "output", "type": "string" }
+      ],
+      "branches": ["next"],
+      "input_mapping": {},
+      "output_mapping": {},
+      "template": "{% if rows %}given{% elif rowsSource and rowsSource.type == \"artifact\" and rowsSource.ref %}artifact{% else %}none{% endif %}",
+      "component_plugin_name": "NodesPlugin",
+      "component_plugin_version": "26.1.0"
+    },
+    "rows_source": {
+      "component_type": "BranchingNode",
+      "id": "rows_source",
+      "name": "Take the road for the rows",
+      "inputs": [
+        { "title": "road", "type": "string" }
+      ],
+      "outputs": [],
+      "branches": ["default", "artifact", "none"],
+      "mapping": { "artifact": "artifact", "none": "none" }
+    },
+    "rows_ref": {
+      "component_type": "PluginTemplateNode",
+      "id": "rows_ref",
+      "name": "Take the artifact the source names",
+      "metadata": {},
+      "inputs": [
+        { "title": "rowsSource" }
+      ],
+      "outputs": [
+        { "title": "output", "type": "string" }
+      ],
+      "branches": ["next"],
+      "input_mapping": {},
+      "output_mapping": {},
+      "template": "{{ rowsSource.ref }}",
+      "component_plugin_name": "NodesPlugin",
+      "component_plugin_version": "26.1.0"
+    },
+    "read_rows": {
+      "component_type": "ApiNode",
+      "id": "read_rows",
+      "name": "Read the rows from the named artifact",
+      "url": "{{CINATRA_BASE_URL}}/api/agents/passthrough",
+      "http_method": "POST",
+      "data": {
+        "tool": "artifact_content_read",
+        "input": { "artifactId": "{{ rowsArtifactId }}" },
+        "agent_run_id": "{{ cinatra_run_id }}"
+      },
+      "inputs": [
+        { "title": "rowsArtifactId", "type": "string" },
+        { "title": "cinatra_run_id", "type": "string", "default": "" }
+      ],
+      "outputs": [
+        { "title": "text", "type": "string" },
+        { "title": "truncated", "type": "boolean" }
+      ],
+      "metadata": {
+        "cinatra": {
+          "riskClass": "read_only",
+          "requiresApproval": false,
+          "packageName": "@cinatra-ai/web-research-agent",
+          "description": "A deterministic read of the rows artifact the source names, admitted by this package's declared artifact dependency."
+        }
+      }
     },
     "research": {
       "component_type": "ApiNode",
@@ -288,8 +468,8 @@
       "http_method": "POST",
       "data": {
         "agent_id": "web-research-agent",
-        "system": "You are a stateless web-research enricher. Follow the SKILL.md step-by-step. When rows is empty, read the rows from rowsSource first: for type \"artifact\" call artifact_representation_get with the ref, for type \"file\" read the file the ref names, and parse its rows before enriching. Use the web_search tool to verify and enrich each row. Return a single JSON object with {enrichedRows, extractionNotes, failures, webChecks} — nothing else.",
-        "user": "{# pyagentspec-input-hint (do not remove): {{ rows }} {{ rowsSource }} {{ sources }} {{ outputSchema }} #}Enrich the following rows via web_search per the research prompt.\n\nRows (JSON array, length 0-20; empty means read them from the source below): {{ rows | tojson }}\n\nRow source (JSON object {type,ref}, empty when rows were given): {{ rowsSource | tojson }}\n\nResearch prompt: {{ prompt }}\n\nOptional sources (JSON array of {type,ref}, length 0-10): {{ sources | tojson }}\n\nOptional output schema for each enriched row (JSON Schema): {{ outputSchema | tojson }}\n\nReturn ONLY the JSON object specified in SKILL.md — keys: enrichedRows, extractionNotes, failures, webChecks.",
+        "system": "You are a stateless web-research enricher. Follow the SKILL.md step-by-step. When rows is empty, the rows are in rowsText, the JSON text read before this step from the artifact that rowsSource names: parse it, take the array of row objects it holds as rows for every step of the skill, including its bounds check, and call no tool to read them. Use the web_search tool to verify and enrich each row. Return a single JSON object with {enrichedRows, extractionNotes, failures, webChecks} — nothing else.",
+        "user": "{# pyagentspec-input-hint (do not remove): {{ rows }} {{ rowsSource }} {{ sources }} {{ outputSchema }} {{ rowsText }} #}Enrich the following rows via web_search per the research prompt.\n\nRows (JSON array, length 0-20; empty means read them from the source below): {{ rows | tojson }}\n\nRow source (JSON object {type,ref}, empty when rows were given): {{ rowsSource | tojson }}\n\nRows read from the named artifact (JSON text, empty when rows were given): {{ rowsText }}\n\nResearch prompt: {{ prompt }}\n\nOptional sources (JSON array of {type,ref}, length 0-10): {{ sources | tojson }}\n\nOptional output schema for each enriched row (JSON Schema): {{ outputSchema | tojson }}\n\nReturn ONLY the JSON object specified in SKILL.md — keys: enrichedRows, extractionNotes, failures, webChecks.",
         "cinatra_llm": {
           "preferredProvider": "openai",
           "preferredModel": "gpt-5.5"
@@ -303,7 +483,8 @@
         { "title": "rowsSource", "type": "object" },
         { "title": "prompt", "type": "string" },
         { "title": "sources", "type": "array" },
-        { "title": "outputSchema", "type": "object" }
+        { "title": "outputSchema", "type": "object" },
+        { "title": "rowsText", "type": "string", "default": "" }
       ],
       "outputs": [
         {
