@@ -107,6 +107,7 @@
   "nodes": [
     { "$component_ref": "start" },
     { "$component_ref": "research" },
+    { "$component_ref": "research_summary" },
     { "$component_ref": "end" }
   ],
   "control_flow_connections": [
@@ -118,8 +119,14 @@
     },
     {
       "component_type": "ControlFlowEdge",
-      "name": "research_to_end",
+      "name": "research_to_research_summary",
       "from_node": { "$component_ref": "research" },
+      "to_node": { "$component_ref": "research_summary" }
+    },
+    {
+      "component_type": "ControlFlowEdge",
+      "name": "research_summary_to_end",
+      "from_node": { "$component_ref": "research_summary" },
       "to_node": { "$component_ref": "end" }
     }
   ],
@@ -195,6 +202,22 @@
       "source_output": "webChecks",
       "destination_node": { "$component_ref": "end" },
       "destination_input": "webChecks"
+    },
+    {
+      "component_type": "DataFlowEdge",
+      "name": "research_enrichedRows_to_research_summary_enrichedRows",
+      "source_node": { "$component_ref": "research" },
+      "source_output": "enrichedRows",
+      "destination_node": { "$component_ref": "research_summary" },
+      "destination_input": "enrichedRows"
+    },
+    {
+      "component_type": "DataFlowEdge",
+      "name": "research_failures_to_research_summary_failures",
+      "source_node": { "$component_ref": "research" },
+      "source_output": "failures",
+      "destination_node": { "$component_ref": "research_summary" },
+      "destination_input": "failures"
     }
   ],
   "$referenced_components": {
@@ -327,6 +350,21 @@
           "requiresApproval": false,
           "packageName": "@cinatra-ai/web-research-agent",
           "description": "Single ApiNode -> /api/llm-bridge. Bridge resolves the agent's DECLARED skill dependency edge (cinatra.dependencies -> @cinatra-ai/web-research-skill, kind:\"skill\") and mounts that extension's single bundle; the skill is no longer embedded in this repo (cinatra#2090) and injects the web_search tool via metadata.cinatra.toolboxes (declaredToolboxIds=['web_search'] filter). The LLM uses web_search ONLY — no MCP primitives — to verify facts in each caller-supplied row and capture per-URL reachability."
+        }
+      }
+    },
+    "research_summary": {
+      "component_type": "OutputMessageNode",
+      "id": "research_summary",
+      "name": "Research result",
+      "inputs": [
+        { "title": "enrichedRows", "type": "array", "default": [] },
+        { "title": "failures", "type": "array", "default": [] }
+      ],
+      "message": "{# pyagentspec-input-hint (do not remove): {{ enrichedRows }} {{ failures }} #}{% if not enrichedRows and failures and failures[0].error == 'missing_prompt' %}No rows were researched: the research question was empty, so there was nothing to look up.{% elif not enrichedRows and failures and failures[0].error == 'input_bounds' %}No rows were researched: a run takes from 1 to 20 rows and at most 10 sources, and this request was outside those limits.{% elif not enrichedRows and failures %}No rows were researched: the research could not start.{% elif not enrichedRows %}No rows were researched: the run received no rows to work on.{% elif failures | length >= enrichedRows | length %}None of the {{ enrichedRows | length }} rows could be enriched; each row carries a note saying why.{% elif failures %}{{ failures | length }} of the {{ enrichedRows | length }} rows could not be enriched, with a note on each saying why; the other rows were enriched.{% elif enrichedRows | length == 1 %}One row was enriched.{% else %}{{ enrichedRows | length }} rows were enriched.{% endif %}",
+      "metadata": {
+        "cinatra": {
+          "purpose": "plain-language-web-research-ending"
         }
       }
     },
